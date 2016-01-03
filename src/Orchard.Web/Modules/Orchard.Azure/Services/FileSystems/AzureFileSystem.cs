@@ -33,6 +33,13 @@ namespace Orchard.Azure.Services.FileSystems {
             protected set;
         }
 
+        public CloudStorageAccount StorageAccount {
+            get {
+                EnsureInitialized();
+                return _storageAccount;
+            }
+        }
+
         public CloudBlobClient BlobClient {
             get {
                 EnsureInitialized();
@@ -69,7 +76,7 @@ namespace Orchard.Azure.Services.FileSystems {
             // The container is named with DNS naming restrictions (i.e. all lower case)
             _container = _blobClient.GetContainerReference(ContainerName);
 
-            _container.CreateIfNotExists(_isPrivate ? BlobContainerPublicAccessType.Off : BlobContainerPublicAccessType.Container);
+            _container.CreateIfNotExists(_isPrivate ? BlobContainerPublicAccessType.Off : BlobContainerPublicAccessType.Blob);
         }
 
         private static string ConvertToRelativeUriPath(string path) {
@@ -257,8 +264,20 @@ namespace Orchard.Azure.Services.FileSystems {
 
             var blob = Container.GetBlockBlobReference(String.Concat(_root, path));
             var newBlob = Container.GetBlockBlobReference(String.Concat(_root, newPath));
-            newBlob.StartCopyFromBlob(blob);
+            newBlob.StartCopy(blob);
             blob.Delete();
+        }
+
+        public void CopyFile(string path, string newPath) {
+            path = ConvertToRelativeUriPath(path);
+            newPath = ConvertToRelativeUriPath(newPath);
+
+            Container.EnsureBlobExists(String.Concat(_root, path));
+            Container.EnsureBlobDoesNotExist(String.Concat(_root, newPath));
+
+            var blob = Container.GetBlockBlobReference(String.Concat(_root, path));
+            var newBlob = Container.GetBlockBlobReference(String.Concat(_root, newPath));
+            newBlob.StartCopy(blob);
         }
 
         public IStorageFile CreateFile(string path) {
@@ -336,7 +355,7 @@ namespace Orchard.Azure.Services.FileSystems {
                 // as opposed to the File System implementation, if nothing is done on the stream
                 // the file will be emptied, because Azure doesn't implement FileMode.Truncate
                 _blob.DeleteIfExists();
-                _blob = _blob.Container.GetBlockBlobReference(_blob.Uri.ToString());
+                _blob = _blob.Container.GetBlockBlobReference(_blob.Name);
                 _blob.UploadFromStream(new MemoryStream(new byte[0]));
                 return OpenWrite();
             }

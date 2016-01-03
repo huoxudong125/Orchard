@@ -66,6 +66,10 @@ namespace Orchard.Autoroute.Handlers {
                     if (current != null) {
                         current.CustomPattern = String.Empty; // force the regeneration
                         current.DisplayAlias = _autorouteService.Value.GenerateAlias(current);
+
+                        // we changed the alias of the previous homepage, so publish this change if the content item was published.
+                        if(current.IsPublished())
+                            _orchardServices.ContentManager.Publish(current.ContentItem);
                     }
                     _autorouteService.Value.PublishAlias(current);
                 }
@@ -80,14 +84,15 @@ namespace Orchard.Autoroute.Handlers {
                 part.DisplayAlias = _autorouteService.Value.GenerateAlias(part);
             }
 
-            // should it become the home page ?
-            if (part.DisplayAlias != "/" && _orchardServices.Authorizer.Authorize(Permissions.SetHomePage)) {
-                // if it's the current home page, do nothing
-                var currentHomePages = _orchardServices.ContentManager.Query<AutoroutePart, AutoroutePartRecord>().Where(x => x.DisplayAlias == "").List();
-                if (currentHomePages.Any(x => x.Id == part.Id)) {
-                    return;
-                }
+            // if the generated alias is empty, compute a new one 
+            if (String.IsNullOrWhiteSpace(part.DisplayAlias)) {
+                _autorouteService.Value.ProcessPath(part);
+                _orchardServices.Notifier.Warning(T("The permalink could not be generated, a new slug has been defined: \"{0}\"", part.Path));
+                return;
+            }
 
+            // check for permalink conflict, unless we are trying to set the home page
+            if (part.DisplayAlias != "/") {
                 var previous = part.Path;
                 if (!_autorouteService.Value.ProcessPath(part))
                     _orchardServices.Notifier.Warning(T("Permalinks in conflict. \"{0}\" is already set for a previously created {2} so now it has the slug \"{1}\"",

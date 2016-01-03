@@ -35,6 +35,8 @@ using Orchard.Tests.Stubs;
 using Orchard.UI.Notify;
 using Orchard.UI.PageClass;
 using Orchard.Tests.Utility;
+using Orchard.Messaging.Services;
+using Orchard.Users.Services;
 
 namespace Orchard.Tests.Modules.Comments.Services {
     [TestFixture]
@@ -49,7 +51,6 @@ namespace Orchard.Tests.Modules.Comments.Services {
             builder.RegisterType<Signals>().As<ISignals>();
             builder.RegisterType<DefaultContentManagerSession>().As<IContentManagerSession>();
             builder.RegisterInstance(new Mock<IContentDefinitionManager>().Object);
-            builder.RegisterInstance(new Mock<ITransactionManager>().Object);
             builder.RegisterInstance(new Mock<IAuthorizer>().Object);
             builder.RegisterInstance(new Mock<INotifier>().Object);
             builder.RegisterInstance(new Mock<IContentDisplay>().Object);
@@ -67,7 +68,11 @@ namespace Orchard.Tests.Modules.Comments.Services {
             builder.RegisterInstance(ShellSettingsUtility.CreateEncryptionEnabled());
             builder.RegisterType<ProcessingEngineStub>().As<IProcessingEngine>();
             builder.RegisterType<StubShellDescriptorManager>().As<IShellDescriptorManager>();
+            builder.RegisterType<DefaultShapeFactory>().As<IShapeFactory>();
 
+            builder.RegisterInstance(new Mock<IShapeTableLocator>().Object);
+            builder.RegisterInstance(new Mock<IShapeDisplay>().Object);
+            builder.RegisterInstance(new Mock<IMessageService>().Object);
             builder.RegisterType<StubClock>().As<IClock>();
             builder.RegisterInstance(new Mock<IPageClassBuilder>().Object); 
             builder.RegisterType<DefaultContentDisplay>().As<IContentDisplay>();
